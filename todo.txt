@@ -1,4 +1,0 @@
-1. Implement response function : DONE 
-2. Evaluate user responses and suggest a degree and career they should get: 
- - write an algrorithm that takes into account the user responses, atributes them a value
- - links to datasets : (college_majors - https://www.kaggle.com/datasets/tunguz/college-majors/data, job_dataset: https://www.kaggle.com/datasets/ravindrasinghrana/job-description-dataset) 
