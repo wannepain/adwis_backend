@@ -1,5 +1,5 @@
-from evaluation import evaluate
-from corpus import inicialize_medium_corpus
+from src.evaluation import evaluate
+from src.corpus import inicialize_medium_corpus
 
 medium_careers = [
     {

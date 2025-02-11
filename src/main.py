@@ -1,28 +1,26 @@
 from flask import Flask, json, jsonify
 from flask import request
 from flask_cors import CORS, cross_origin
-from chatbot import respond
-from corpus import inicialize_medium_corpus  # Corrected import
-from career import return_career
-from evaluation import evaluate
+from src.chatbot import respond
+from src.corpus import inicialize_medium_corpus  # Corrected import
+from src.career import return_career
 from dotenv import load_dotenv
 import os
 import stripe
 import firebase_admin
 from firebase_admin import firestore
+from helper.load_secrets import read_secret_from_txt, read_secret_json
 
 firebase_admin.initialize_app(
     firebase_admin.credentials.Certificate(
-        os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+        read_secret_json("google/adwis_secret"),
     )
 )
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+stripe.api_key = read_secret_from_txt("stripe/stripe_secret_key")
 
 # app config
 app = Flask(__name__)
 app.config["CORS_HEADERS"] = "Content-Type"
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
-app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies", "json", "query_string"]
 
 cors = CORS(app)
 
@@ -153,7 +151,7 @@ def cancel_subscription():
         return jsonify({"error": str(e)}), 400
 
 
-endpoint_secret = os.getenv("STRIPE_ENDPOINT_SECRET")
+endpoint_secret = read_secret_from_txt("stripe/stripe_endpoint_secret")
 
 print(endpoint_secret)
 
@@ -257,4 +255,7 @@ def webhook():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(
+        host="0.0.0.0",
+        port=os.environ.get("PORT", 8080),
+    )
