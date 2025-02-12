@@ -1,4 +1,4 @@
-from chatbot import evaluate
+from src.chatbot import evaluate
 from src.corpus import inicialize_medium_corpus
 
 medium_careers = [

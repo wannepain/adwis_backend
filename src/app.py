@@ -9,7 +9,6 @@ import os
 import stripe
 import firebase_admin
 from firebase_admin import firestore
-from src.load_secrets import read_secret_from_txt, read_secret_json
 import spacy
 
 load_dotenv()
