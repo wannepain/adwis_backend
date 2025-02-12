@@ -174,3 +174,7 @@ cython_debug/
 .pypirc
 
 secrets/
+docker.env
+google 
+stripe
+node_modules

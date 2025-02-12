@@ -13,23 +13,13 @@ services:
       context: .
     ports:
       - 8080:8080
-    secrets:
-      - stripe_endpoint_secret
-      - stripe_public_key
-      - stripe_secret_key
-      # - adwis_secret
+    environment:
+      - STRIPE_SECRET_KEY=${stripe_secret_key}
+      - STRIPE_PUBLIC_KEY=${stripe_public_key}
+      - STRIPE_ENDPOINT_SECRET=${stripe_endpoint_secret}
+      - ADWIS_SECRET=${adwis_secret}
 
-secrets:
-  stripe_endpoint_secret:
-    file: stripe/stripe_endpoint_secret.txt
-  stripe_public_key:
-    file: stripe/stripe_public_key.txt
-  stripe_secret_key:
-    file: stripe/stripe_secret_key.txt
-  # adwis_secret:
-  #   file: google/adwis_secret.json
-
-
+# Remove the secrets section if using volumes
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to

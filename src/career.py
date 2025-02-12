@@ -1,4 +1,4 @@
-from src.evaluation import evaluate
+from chatbot import evaluate
 from src.corpus import inicialize_medium_corpus
 
 medium_careers = [
@@ -266,7 +266,7 @@ medium_careers = [
 medium_corpus = inicialize_medium_corpus()
 
 
-def return_career(history):
+def return_career(history, nlp):
     """
     Returns the career that best fits the user's responses
     Args:
@@ -275,7 +275,7 @@ def return_career(history):
         The most similar career to the user's responses
     """
 
-    scores = evaluate(history, medium_corpus)
+    scores = evaluate(history, medium_corpus, nlp)
     if scores is None:
         return None
 

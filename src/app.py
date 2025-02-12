@@ -9,15 +9,24 @@ import os
 import stripe
 import firebase_admin
 from firebase_admin import firestore
-from helper.load_secrets import read_secret_from_txt, read_secret_json
+from src.load_secrets import read_secret_from_txt, read_secret_json
+import spacy
 
-firebase_admin.initialize_app(
-    firebase_admin.credentials.Certificate(
-        read_secret_json("google/adwis_secret"),
+load_dotenv()
+
+try: 
+    firebase_admin.initialize_app(
+        firebase_admin.credentials.Certificate(
+            json.loads(os.getenv("ADWIS_SECRET"))
+        )
     )
-)
-stripe.api_key = read_secret_from_txt("stripe/stripe_secret_key")
+except Exception as e:
+    print(f"error occured in reading json file. Error:{e}")
 
+try:
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+except Exception as e:
+    print(f"error occured when reading secret file. Error: {e}")
 # app config
 app = Flask(__name__)
 app.config["CORS_HEADERS"] = "Content-Type"
@@ -26,9 +35,14 @@ cors = CORS(app)
 
 corpus = inicialize_medium_corpus()
 
+def get_nlp():
+    if not hasattr(app, 'nlp'):
+        app.nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])  # Disabling components saves memory
+    return app.nlp
+
 
 @app.route("/")
-def respond():
+def respond_test():
     return jsonify({"hello": "world"})
 
 
@@ -39,7 +53,7 @@ def respond_route():  # need to move the used question idx to the global scope
     history_in_req = request_data["history"]
     used_question_idx = request_data["used_question_idx"]
 
-    respond(history_in_req, corpus, used_question_idx)
+    respond(history_in_req, corpus, used_question_idx, nlp=get_nlp())
 
     return jsonify(
         {
@@ -54,7 +68,7 @@ def respond_route():  # need to move the used question idx to the global scope
 def career_route():
     request_data = request.get_json()
     history_in_req = request_data["history"]
-    career = return_career(history_in_req)
+    career = return_career(history_in_req, get_nlp())
     return jsonify({"career": career})
 
 
@@ -151,9 +165,8 @@ def cancel_subscription():
         return jsonify({"error": str(e)}), 400
 
 
-endpoint_secret = read_secret_from_txt("stripe/stripe_endpoint_secret")
+endpoint_secret = os.getenv("STRIPE_ENDPOINT_SECRET")
 
-print(endpoint_secret)
 
 
 # @app.route("/webhook", methods=["POST"])
@@ -255,7 +268,8 @@ def webhook():
 
 
 if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8080))
     app.run(
         host="0.0.0.0",
-        port=os.environ.get("PORT", 8080),
+        port=port,
     )
