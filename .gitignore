@@ -178,3 +178,4 @@ docker.env
 google 
 stripe
 node_modules
+adwis_secret.json

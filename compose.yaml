@@ -18,7 +18,9 @@ services:
       - STRIPE_PUBLIC_KEY=${stripe_public_key}
       - STRIPE_ENDPOINT_SECRET=${stripe_endpoint_secret}
       - ADWIS_SECRET=${adwis_secret}
-
+      - GOOGLE_APPLICATION_CREDENTIALS_PATH="/app/adwis_secret.json"
+    volumes:
+      - ./adwis_secret.json:/app/adwis_secret.json
 # Remove the secrets section if using volumes
 
 # The commented out section below is an example of how to define a PostgreSQL

@@ -10,22 +10,20 @@ import stripe
 import firebase_admin
 from firebase_admin import firestore
 import spacy
+from google.cloud.firestore_v1 import FieldFilter
 
 load_dotenv()
 
-try: 
+try:
+    credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH").strip('"')
+
     firebase_admin.initialize_app(
-        firebase_admin.credentials.Certificate(
-            json.loads(os.getenv("ADWIS_SECRET"))
-        )
+        firebase_admin.credentials.Certificate(credentials_path)
     )
 except Exception as e:
-    print(f"error occured in reading json file. Error:{e}")
+    print(f"exception in setting firebase. Error: {e}")
 
-try:
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-except Exception as e:
-    print(f"error occured when reading secret file. Error: {e}")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 # app config
 app = Flask(__name__)
 app.config["CORS_HEADERS"] = "Content-Type"
@@ -211,6 +209,60 @@ endpoint_secret = os.getenv("STRIPE_ENDPOINT_SECRET")
 #     return jsonify({"status": "success"}), 200
 
 
+# @app.route("/webhook", methods=["POST"])
+# def webhook():
+#     event = None
+#     payload = request.data
+
+#     try:
+#         event = json.loads(payload)
+#     except json.decoder.JSONDecodeError as e:
+#         print("⚠️  Webhook error while parsing basic request." + str(e))
+#         return jsonify(success=False)
+#     if endpoint_secret:
+#         # Only verify the event if there is an endpoint secret defined
+#         # Otherwise use the basic event deserialized with json
+#         sig_header = request.headers.get("stripe-signature")
+#         try:
+#             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+#         except stripe.error.SignatureVerificationError as e:
+#             print("⚠️  Webhook signature verification failed." + str(e))
+#             return jsonify(success=False)
+
+#     # Handle the event
+#     if event["type"] == "invoice.payment_succeeded":
+
+#         subscription_id = event["data"]["object"]["subscription"]
+#         customer_id = event["data"]["object"]["customer"]
+
+#         # Update user subscription status in Firestore
+#         db = firestore.client()
+#         users_ref = (
+#             db.collection("users").where("stripeCustomerId", "==", customer_id).stream()
+#         )
+
+#         for user_doc in users_ref:
+#             user_doc.reference.update(
+#                 {"subscriptionActive": True, "subscriptionId": subscription_id}
+#             )
+
+#     elif event["type"] == "customer.subscription.deleted":
+#         customer_id = event["data"]["object"]["customer"]
+
+#         # Update subscription status as canceled
+#         db = firestore.client()
+        
+#         users_ref = db.collection("users").where(filter=("stripeCustomerId", "==", customer_id)).stream()
+
+#         for user_doc in users_ref:
+#             user_doc.reference.update({"subscriptionActive": False})
+#     else:
+#         # Unexpected event type
+#         print("Unhandled event type {}".format(event["type"]))
+
+#     return jsonify(success=True)
+
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     event = None
@@ -221,9 +273,8 @@ def webhook():
     except json.decoder.JSONDecodeError as e:
         print("⚠️  Webhook error while parsing basic request." + str(e))
         return jsonify(success=False)
+
     if endpoint_secret:
-        # Only verify the event if there is an endpoint secret defined
-        # Otherwise use the basic event deserialized with json
         sig_header = request.headers.get("stripe-signature")
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
@@ -231,17 +282,15 @@ def webhook():
             print("⚠️  Webhook signature verification failed." + str(e))
             return jsonify(success=False)
 
-    # Handle the event
-    if event["type"] == "invoice.payment_succeeded":
+    db = firestore.client()
 
+    if event["type"] == "invoice.payment_succeeded":
         subscription_id = event["data"]["object"]["subscription"]
         customer_id = event["data"]["object"]["customer"]
 
-        # Update user subscription status in Firestore
-        db = firestore.client()
-        users_ref = (
-            db.collection("users").where("stripeCustomerId", "==", customer_id).stream()
-        )
+        users_ref = db.collection("users").where(
+            filter=FieldFilter("stripeCustomerId", "==", customer_id)
+        ).stream()
 
         for user_doc in users_ref:
             user_doc.reference.update(
@@ -251,16 +300,14 @@ def webhook():
     elif event["type"] == "customer.subscription.deleted":
         customer_id = event["data"]["object"]["customer"]
 
-        # Update subscription status as canceled
-        db = firestore.client()
-        users_ref = (
-            db.collection("users").where("stripeCustomerId", "==", customer_id).stream()
-        )
+        users_ref = db.collection("users").where(
+            filter=FieldFilter("stripeCustomerId", "==", customer_id)
+        ).stream()
 
         for user_doc in users_ref:
             user_doc.reference.update({"subscriptionActive": False})
+
     else:
-        # Unexpected event type
         print("Unhandled event type {}".format(event["type"]))
 
     return jsonify(success=True)
